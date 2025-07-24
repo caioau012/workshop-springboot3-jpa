@@ -10,8 +10,10 @@ import org.springframework.stereotype.Service;
 
 import com.educandoweb.course.entities.User;
 import com.educandoweb.course.repositories.UserRepository;
-import com.educandoweb.course.services.exceptions.DatabaseException;
+import com.educandoweb.course.services.exceptions.DatabaseNotFoundException;
 import com.educandoweb.course.services.exceptions.ResourceNotFoundException;
+
+import jakarta.persistence.EntityNotFoundException;
 
 @Service
 public class UserService {
@@ -35,15 +37,21 @@ public class UserService {
 		} catch (EmptyResultDataAccessException e) {
 			throw new ResourceNotFoundException(id);
 		} catch (DataIntegrityViolationException e) {
-			throw new DatabaseException(e.getMessage());
+			throw new DatabaseNotFoundException(e.getMessage());
 		}
 	}
 	
 	public User update(Long id, User obj){
-		User entity = repository.getReferenceById(id);
-		updateData(entity, obj);
-		return repository.save(entity);
+		try {
+			@SuppressWarnings("deprecation")
+			User entity = repository.getOne(id);
+			updateData(entity, obj);
+			return repository.save(entity);
+		} catch (EntityNotFoundException e) {
+			throw new ResourceNotFoundException(id);
+		}
 	}
+
 	private void updateData(User entity, User obj){
 		entity.setName(obj.getName());
 		entity.setEmail(obj.getEmail());
